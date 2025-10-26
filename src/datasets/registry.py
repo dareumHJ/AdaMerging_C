@@ -8,14 +8,14 @@ import copy
 
 from torch.utils.data import random_split
 
-from datasets.cars import Cars
-from datasets.dtd import DTD
-from datasets.eurosat import EuroSAT, EuroSATVal
-from datasets.gtsrb import GTSRB
-from datasets.mnist import MNIST
-from datasets.resisc45 import RESISC45
-from datasets.svhn import SVHN
-from datasets.sun397 import SUN397
+from datasets._cars import Cars
+from datasets._dtd import DTD
+from datasets._eurosat import EuroSAT, EuroSATVal
+from datasets._gtsrb import GTSRB
+from datasets._mnist import MNIST
+from datasets._resisc45 import RESISC45
+from datasets._svhn import SVHN
+from datasets._sun397 import SUN397
 
 ## Save all class names and their objects imported in this registry.py file
 ## Important for this file's scalability and extensibility
