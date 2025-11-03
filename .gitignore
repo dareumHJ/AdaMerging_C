@@ -1,1 +1,6 @@
 data/*
+checkpoints/*
+src/__pycache__/*
+src/datasets/__pycache__/*
+logs/*
+openclip_cache

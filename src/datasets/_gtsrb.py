@@ -79,7 +79,7 @@ class PyTorchGTSRB(VisionDataset):
         self.target_transform = target_transform
     
     def __len__(self) -> int:
-        return len(self.samples)
+        return len(self._samples)
     
     def __getitem__(self, index: int) -> Tuple[Any, Any]:
         

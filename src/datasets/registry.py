@@ -64,20 +64,17 @@ def split_train_into_train_val(dataset, new_dataset_class_name, batch_size, num_
 
     new_dataset.train_dataset = trainset
     new_dataset.train_loader = torch.utils.data.DataLoader(
-        trainset,
+        new_dataset.train_dataset,
         batch_size=batch_size,
         shuffle=True,
         num_workers=num_workers,
-        pin_memory=True
     )
 
     new_dataset.test_dataset = valset
     new_dataset.test_loader = torch.utils.data.DataLoader(
-        valset,
+        new_dataset.test_dataset,
         batch_size=batch_size,
-        shuffle=False,
         num_workers=num_workers,
-        pin_memory=True
     )
 
     new_dataset.classnames = copy.deepcopy(dataset.classnames)
@@ -95,7 +92,7 @@ def split_train_into_train_val(dataset, new_dataset_class_name, batch_size, num_
     val_fraction이랑 max_val_samples는 학습 데이터 중 검증 데이터로 얼마나 나눌지를 결정하는 인자.
     """
 def get_dataset(dataset_name, preprocess, location, batch_size=128, num_workers=0, val_fraction=0.1, max_val_samples=5000):
-    if dataset_name.endwith('Val'):
+    if dataset_name.endswith('Val'):
         # Handle val splits
         if dataset_name in registry:
             dataset_class = registry[dataset_name]

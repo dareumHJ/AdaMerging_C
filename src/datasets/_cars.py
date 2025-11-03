@@ -32,7 +32,7 @@ class PytorchStanfordCars(VisionDataset):
         download (bool, optional): If True, downloads the dataset from the internet and
             puts it in root directory. If dataset is already downloaded, it is not
             downloaded again."""
-    def __init(
+    def __init__(
         self,
         root: str,
         split: str = "train",
@@ -55,10 +55,10 @@ class PytorchStanfordCars(VisionDataset):
         
         ### specify annotation path and image path according to split
         if self._split == "train":
-            self.annotation_mat_path = devkit / "cars_train_annos.mat"
+            self._annotations_mat_path = devkit / "cars_train_annos.mat"
             self._images_base_path = self._base_folder / "cars_train"
         else:
-            self.annotation_mat_path = devkit / "cars_test_annos.mat"
+            self._annotations_mat_path = devkit / "cars_test_annos_withlabels.mat"
             self._images_base_path = self._base_folder / "cars_test"
         
         if download:
@@ -75,7 +75,7 @@ class PytorchStanfordCars(VisionDataset):
                 annotation["class"] - 1 # Original target mapping starts from 1, hence -1
             )
             ### open .mat file and read annotations
-            for annotation in sio.loadmat(self.annotation_mat_path, squeeze_me=True)["annotations"]
+            for annotation in sio.loadmat(self._annotations_mat_path, squeeze_me=True)["annotations"]
         ]
         
         ### load class names by opening cars_meta.mat file
@@ -129,6 +129,7 @@ class PytorchStanfordCars(VisionDataset):
         if not (self._base_folder / "devkit").is_dir():
             return False
 
+        print(self._annotations_mat_path)
         return self._annotations_mat_path.exists() and self._images_base_path.is_dir()
 
 """Final Interface for Users"""
