@@ -47,7 +47,7 @@ def get_logits(inputs, classifier):
     assert callable(classifier)
     if hasattr(classifier, 'to'):
         classifier = classifier.to(inputs.device)
-    return classifier(input)
+    return classifier(inputs)
 
 def get_probs(inputs, classifier):
     if hasattr(classifier, 'predict_proba'):

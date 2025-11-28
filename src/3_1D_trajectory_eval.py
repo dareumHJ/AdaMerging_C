@@ -15,7 +15,8 @@ if src_dir not in sys.path:
 
 # --- 1. 설정 ---
 TASK1_NAME = 'Cars'
-TASK2_NAME = 'EuroSAT'
+TASK2_NAME = 'SUN397'
+ALL_TASK_NAME = ['SUN397', 'Cars', 'RESISC45', 'EuroSAT', 'SVHN', 'GTSRB', 'MNIST', 'DTD']
 # OMEGA_1, OMEGA_2는 가중 평균 손실 계산에만 사용
 OMEGA_1 = 0.5
 OMEGA_2 = 0.5
@@ -61,7 +62,7 @@ print("Task Vectors loaded.")
 print("Loading datasets and classification heads...")
 dataloaders = {}
 heads = {}
-for name in [TASK1_NAME, TASK2_NAME]:
+for name in ALL_TASK_NAME:
     dataset = get_dataset(name, pretrained_model.val_preprocess, location=DATA_LOCATION, batch_size=128)
     dataloaders[name] = dataset.test_loader
     heads[name] = get_classification_head(args, name).to(device)
@@ -75,11 +76,17 @@ temp_encoder.eval()
 temp_encoder.to(device)
 
 # t=0 (Cars) 에서 t=1 (MNIST) 까지 이동
-t_range = np.linspace(-0.2, 1.2, 25) # 범위를 살짝 확장해서 관찰
+t_range = np.linspace(-0.2, 1.2, 25)
 results = {
     't': [],
-    'loss_task1': [],
-    'loss_task2': [],
+    'loss_task1(main)': [],
+    'loss_task2(main)': [],
+    'loss_task3': [],
+    'loss_task4': [],
+    'loss_task5': [],
+    'loss_task6': [],
+    'loss_task7': [],
+    'loss_task8': [],
     'loss_weighted': []
 }
 
@@ -99,54 +106,82 @@ with torch.no_grad():
             current_state_dict[key] = pretrained_state_dict[key] + interp_vec
 
         temp_encoder.load_state_dict(current_state_dict, strict=False)
+        
+        loss_list = [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0]
+        total_samples = [0, 0, 0, 0, 0, 0, 0, 0]
+        for i, task_name in enumerate(ALL_TASK_NAME):
+            total_samples[i] = 0
+            for batch_idx, batch in enumerate(dataloaders[task_name]):
+                if batch_idx >= 5: # 속도를 위해 5 배치만 테스트
+                    break
+                try:
+                    images, labels = batch[0].to(device), batch[1].to(device)
+                except:
+                    batch = batch if isinstance(batch, dict) else {'images': batch[0], 'labels': batch[1]}
+                    images, labels = batch['images'].to(device), batch['labels'].to(device)
+
+                features = temp_encoder(images)
+                logits = heads[TASK1_NAME](features)
+                loss = loss_fn(logits, labels)
+                loss_list[i] += loss.item() * images.size(0)
+                total_samples[i] += images.size(0)
+            
+            if total_samples[i] > 0:
+                loss_list[i] /= total_samples[i]
 
         # --- Task 1 (Cars) 손실 계산 ---
-        loss_1 = 0.0
-        total_samples_1 = 0
-        for batch_idx, batch in enumerate(dataloaders[TASK1_NAME]):
-            if batch_idx >= 5: # 속도를 위해 5 배치만 테스트
-                 break
-            try:
-                images, labels = batch[0].to(device), batch[1].to(device)
-            except:
-                batch = batch if isinstance(batch, dict) else {'images': batch[0], 'labels': batch[1]}
-                images, labels = batch['images'].to(device), batch['labels'].to(device)
+        # loss_1 = 0.0
+        # total_samples_1 = 0
+        # for batch_idx, batch in enumerate(dataloaders[TASK1_NAME]):
+        #     if batch_idx >= 5: # 속도를 위해 5 배치만 테스트
+        #          break
+        #     try:
+        #         images, labels = batch[0].to(device), batch[1].to(device)
+        #     except:
+        #         batch = batch if isinstance(batch, dict) else {'images': batch[0], 'labels': batch[1]}
+        #         images, labels = batch['images'].to(device), batch['labels'].to(device)
 
-            features = temp_encoder(images)
-            logits = heads[TASK1_NAME](features)
-            loss = loss_fn(logits, labels)
-            loss_1 += loss.item() * images.size(0)
-            total_samples_1 += images.size(0)
+        #     features = temp_encoder(images)
+        #     logits = heads[TASK1_NAME](features)
+        #     loss = loss_fn(logits, labels)
+        #     loss_1 += loss.item() * images.size(0)
+        #     total_samples_1 += images.size(0)
         
-        if total_samples_1 > 0:
-            loss_1 /= total_samples_1
+        # if total_samples_1 > 0:
+        #     loss_1 /= total_samples_1
 
         # --- Task 2 (MNIST) 손실 계산 ---
-        loss_2 = 0.0
-        total_samples_2 = 0
-        for batch_idx, batch in enumerate(dataloaders[TASK2_NAME]):
-            if batch_idx >= 5: # 속도를 위해 5 배치만 테스트
-                 break
-            try:
-                images, labels = batch[0].to(device), batch[1].to(device)
-            except:
-                batch = batch if isinstance(batch, dict) else {'images': batch[0], 'labels': batch[1]}
-                images, labels = batch['images'].to(device), batch['labels'].to(device)
+        # loss_2 = 0.0
+        # total_samples_2 = 0
+        # for batch_idx, batch in enumerate(dataloaders[TASK2_NAME]):
+        #     if batch_idx >= 5: # 속도를 위해 5 배치만 테스트
+        #          break
+        #     try:
+        #         images, labels = batch[0].to(device), batch[1].to(device)
+        #     except:
+        #         batch = batch if isinstance(batch, dict) else {'images': batch[0], 'labels': batch[1]}
+        #         images, labels = batch['images'].to(device), batch['labels'].to(device)
 
-            features = temp_encoder(images)
-            logits = heads[TASK2_NAME](features)
-            loss = loss_fn(logits, labels)
-            loss_2 += loss.item() * images.size(0)
-            total_samples_2 += images.size(0)
+        #     features = temp_encoder(images)
+        #     logits = heads[TASK2_NAME](features)
+        #     loss = loss_fn(logits, labels)
+        #     loss_2 += loss.item() * images.size(0)
+        #     total_samples_2 += images.size(0)
         
-        if total_samples_2 > 0:
-            loss_2 /= total_samples_2
+        # if total_samples_2 > 0:
+        #     loss_2 /= total_samples_2
 
         # --- 결과 저장 ---
-        weighted_loss = OMEGA_1 * loss_1 + OMEGA_2 * loss_2
+        weighted_loss = OMEGA_1 * loss_list[1] + OMEGA_2 * loss_list[0]
         results['t'].append(t)
-        results['loss_task1'].append(loss_1)
-        results['loss_task2'].append(loss_2)
+        results['loss_task1(main)'].append(loss_list[1])
+        results['loss_task2(main)'].append(loss_list[0])
+        results['loss_task3'].append(loss_list[2])
+        results['loss_task4'].append(loss_list[3])
+        results['loss_task5'].append(loss_list[4])
+        results['loss_task6'].append(loss_list[5])
+        results['loss_task7'].append(loss_list[6])
+        results['loss_task8'].append(loss_list[7])
         results['loss_weighted'].append(weighted_loss)
         
         pbar.update(1)
@@ -157,8 +192,14 @@ print("Loss calculation complete.")
 # --- 7. 시각화 ---
 print("Saving 1D loss plot...")
 plt.figure(figsize=(10, 6))
-plt.plot(results['t'], results['loss_task1'], label=f'{TASK1_NAME} Loss (t=0 optimal)', linestyle='--', marker='o', markersize=4)
-plt.plot(results['t'], results['loss_task2'], label=f'{TASK2_NAME} Loss (t=1 optimal)', linestyle='--', marker='s', markersize=4)
+plt.plot(results['t'], results['loss_task1(main)'], label=f'{TASK1_NAME} Loss (t=0 optimal)', linestyle='--', marker='o', markersize=4)
+plt.plot(results['t'], results['loss_task2(main)'], label=f'{TASK2_NAME} Loss (t=1 optimal)', linestyle='--', marker='s', markersize=4)
+plt.plot(results['t'], results['loss_task3'], label=f'{ALL_TASK_NAME[2]} Loss (t=2)', linestyle='--', marker='s', markersize=2)
+plt.plot(results['t'], results['loss_task4'], label=f'{ALL_TASK_NAME[3]} Loss (t=3)', linestyle='--', marker='s', markersize=2)
+plt.plot(results['t'], results['loss_task5'], label=f'{ALL_TASK_NAME[4]} Loss (t=4)', linestyle='--', marker='s', markersize=2)
+plt.plot(results['t'], results['loss_task6'], label=f'{ALL_TASK_NAME[5]} Loss (t=5)', linestyle='--', marker='s', markersize=2)
+plt.plot(results['t'], results['loss_task7'], label=f'{ALL_TASK_NAME[6]} Loss (t=6)', linestyle='--', marker='s', markersize=2)
+plt.plot(results['t'], results['loss_task8'], label=f'{ALL_TASK_NAME[7]} Loss (t=7)', linestyle='--', marker='s', markersize=2)
 plt.plot(results['t'], results['loss_weighted'], label=f'Weighted Average Loss (0.5*T1 + 0.5*T2)', linestyle='-', marker='x', markersize=6, linewidth=2.5, color='black')
 
 plt.xlabel(f'Interpolation Coefficient (t) [0={TASK1_NAME}, 1={TASK2_NAME}]')
@@ -170,7 +211,7 @@ plt.axvline(0, color='blue', lw=1.0, linestyle='-.', label=f'Optimal {TASK1_NAME
 plt.axvline(1, color='red', lw=1.0, linestyle='-.', label=f'Optimal {TASK2_NAME} (t=1)')
 plt.legend()
 
-save_path = 'linear_path_barrier_INTERTASK_cars_mnist.png'
+save_path = 'linear_path_barrier_INTERTASK_cars_mnist_and_others.png'
 plt.savefig(save_path, bbox_inches='tight')
 plt.close()
 

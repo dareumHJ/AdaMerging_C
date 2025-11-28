@@ -1,9 +1,9 @@
 import os
-os.environ["CUDA_VISIBLE_DEVICES"] = "3"
+os.environ["CUDA_VISIBLE_DEVICES"] = "0"
 
 import time
 import sys
-sys.path.append('/home/taskarithmetic/')
+sys.path.append('./AdaMerging_C/')
 
 from eval import eval_single_dataset
 from args import parse_arguments
@@ -25,17 +25,18 @@ def create_log_dir(path, filename='log.txt'):
 exam_datasets = ['SUN397', 'Cars', 'RESISC45', 'EuroSAT', 'SVHN', 'GTSRB', 'MNIST', 'DTD'] # SUN397 | Cars | RESISC45 | EuroSAT | SVHN | GTSRB | MNIST | DTD
 model = 'ViT-B-32'
 args = parse_arguments()
-args.data_location = '/home/taskarithmetic/data'
+device = args.device
+args.data_location = './data'
 args.model = model
-args.save = '/home/taskarithmetic/checkpoints/' + model
-args.logs_path = '/home/taskarithmetic/logs/' + model
-pretrained_checkpoint = '/home/taskarithmetic/checkpoints/'+model+'/zeroshot.pt'
+args.save = './checkpoints/' + model
+args.logs_path = './logs/' + model
+pretrained_checkpoint = './checkpoints/'+model+'/zeroshot.pt'
 
 str_time_ = time.strftime('%Y%m%d_%H%M%S', time.localtime(time.time()))
 log = create_log_dir(args.logs_path, 'log_{}_ties_merging.txt'.format(str_time_))
 
 from ties_merging_utils import *
-ft_checks = [torch.load('/home/taskarithmetic/checkpoints/'+model+'/'+dataset_name+'/finetuned.pt').state_dict() for dataset_name in exam_datasets]
+ft_checks = [torch.load('./checkpoints/'+model+'/'+dataset_name+'/finetuned.pt').state_dict() for dataset_name in exam_datasets]
 ptm_check = torch.load(pretrained_checkpoint).state_dict()
 check_parameterNamesMatch(ft_checks + [ptm_check])
 
